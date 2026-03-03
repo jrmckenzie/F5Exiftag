@@ -227,21 +227,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.""",
                     tags_dict.update({'ExposureProgram': ExposureProgram})
                 if 'Exposure Comp.' in row:
                     tags_dict.update({"ExposureCompensation": row['Exposure Comp.']})
-                ScanImageName = (Path(config.get("NikonFData", "path")).stem +
-                                 "-" + row['Frame Count'] + ".JPG")
-                ScanImagePath = Path(config.get("ScannedImagesPath", "path"), ScanImageName)
-                if not ScanImagePath.is_file():
-                    sg.popup_error('Scan image could not be found in ' + str(ScanImagePath),
-                                   'Are the scanned images saved in the right place and with the correct naming ' +
-                                   'convention? This application will keep going and try the next one in the ' +
-                                   'sequence until the end of the roll.', title='Error: scanned image not found.')
-                else:
+                ScanImageStem = (Path(config.get("NikonFData", "path")).stem +
+                                 "-" + row['Frame Count'])
+                ScanImageRoot = Path(config.get("ScannedImagesPath", "path"))
+                ScanImagePath = Path(ScanImageRoot / ScanImageStem).with_suffix(".JPG")
+                if Path(ScanImageRoot / ScanImageStem).with_suffix(".jpg").is_file():
+                    ScanImagePath = Path(ScanImageRoot / ScanImageStem).with_suffix(".jpg")
+                if ScanImagePath.is_file():
                     with ExifToolHelper() as et:
                         et.set_tags(
                             ScanImagePath,
                             tags=tags_dict,
                             params=["-P", "-overwrite_original"]
                         )
+                else:
+                    sg.popup_error('Scan image could not be found in ' + str(ScanImagePath),
+                                   'Are the scanned images saved in the right place and with the correct naming ' +
+                                   'convention? This application will keep going and try the next one in the ' +
+                                   'sequence until the end of the roll.', title='Error: scanned image not found.')
             progress_win.close()
             sg.popup_ok("Process complete for Shooting Data " +
                         Path(config.get("NikonFData", "path")).stem, title="Process complete")
