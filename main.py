@@ -20,17 +20,24 @@
 
 import csv
 import sys
-import os
 import configparser
 import FreeSimpleGUI as sg
 from pathlib import Path
 from exiftool import ExifToolHelper
+import pandas as pd
+import linecache
+from io import StringIO
 
 version_number = '1.0.0'
 version_date = '01/03/2026'
+my_camera_model = "NIKON F5"
+my_camera_serial_number = 3150115
+ISO = 100
+
 sg.theme('SystemDefault')
+
 config = configparser.ConfigParser()
-script_path = Path(os.path.abspath(os.path.dirname(sys.argv[0])))
+script_path = Path(__file__).absolute().parent
 path_to_config = script_path / 'config.ini'
 config.read(path_to_config)
 # Read configuration and find location of Nikon Shooting Data folder, or ask user to set it
@@ -71,45 +78,19 @@ else:
     locwindow.close()
 
 fd_layout = [[sg.Text('F5Exiftag - Tag Nikon F5 film scans with EXIF data', font=('Arial', 12, 'bold'))],
-             [sg.Text('Tag a batch of scanned files (in jpeg format) with the Shooting Data exported from Nikon' +
-                    'Photo Secretary AC-1WE for F5', size=(45, 3))],
+             [sg.Text('Tag a batch of scanned files (in jpeg format) with lens data, using the Shooting Data exported' +
+                    '  from Nikon Photo Secretary AC-1WE for F5 updated by the user with lens info', size=(45, 5))],
              [sg.Text('Please locate your Nikon Shooting Data file:')],
              [sg.Input(key='-IN3-', change_submits=False, readonly=True),
-            sg.FileBrowse(key='FDloc', initial_folder=config.get('NikonSData', 'path'), file_types=(("Text documents (*.txt)", "*.txt"),("All Files", "*.*")))],
+              sg.FileBrowse(key='FDloc', initial_folder=config.get('NikonSData', 'path'),
+                            file_types=(('Text documents', '*.txt'), ('All Files', '*.*')))],
              [sg.Text('Please locate your Scanned Images folder:')],
              [sg.Input(key='-IN4-', change_submits=False, readonly=True),
             sg.FolderBrowse(key='SIloc', initial_folder=config.get('ScannedImagesPath', 'path')), ],
              [sg.Button('Go!'), sg.Button('About'), sg.Button('Licence'), sg.Button('Exit')],
-             [sg.Text('Copyright © ' + version_date[-4:] + ' JR McKenzie',
+             [sg.Text('v' + version_number + ' Copyright © ' + version_date[-4:] + ' JR McKenzie',
                     font=('Arial', 8, 'normal'))],
              ]
-
-
-def import_data_from_csv(csv_filename):
-    try:
-        with open(csv_filename, 'r') as csv_file:
-            reader = csv.reader(csv_file)
-            csv_rownum = 0
-            csv_data_db = []
-            for csvRow in reader:
-                sdata = {}
-                if csv_rownum == 0:
-                    film_iso = csvRow[3]
-                elif csv_rownum == 1:
-                    dnames = csvRow
-                else:
-                    colnum = 0
-                    for col in csvRow:
-                        sdata.update({dnames[colnum]: col})
-                        colnum += 1
-                    sdata.update({'ISO': film_iso})
-                    csv_data_db.append(sdata)
-                csv_rownum += 1
-            return csv_data_db
-    except FileNotFoundError:
-        sg.popup('Error: Shooting Data file ' + csv_filename + ' not found.')
-        sys.exit('Error: Shooting Data file ' + csv_filename + ' not found.')
-
 
 if __name__ == "__main__":
     filmdata_window = sg.Window('F5Exiftag', fd_layout)
@@ -174,8 +155,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.""",
             with open(path_to_config, 'w') as iconfigfile:
                 config.write(iconfigfile)
                 iconfigfile.close()
-            sdatadb = import_data_from_csv(config.get("NikonFData", "path"))
-            scanned_images_path = config.get("ScannedImagesPath", "path")
+            sd_data_file = config.get("NikonFData", "path")
+            try:
+                firstline = linecache.getline(sd_data_file, 1)
+                reader = csv.reader(StringIO(firstline))
+                for csvRow in reader:
+                    ISO = csvRow[3]
+            except FileNotFoundError:
+                sg.popup('Error: Shooting Data file not found.')
+                sys.exit('Error: Shooting Data file not found.')
+            sd_data_file = Path(sd_data_file)
+            sd_data_db = pd.read_csv(sd_data_file, header=1)
             # Iterate through the frames on the film - pop up a progress bar window
             progress_layout = [
                 [sg.Text('Processing scanned images')],
@@ -185,54 +175,56 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.""",
             progress_win.bring_to_front()
             progress_win.force_focus()
             progress_bar = progress_win.find_element('progress')
-            for row in sdatadb:
-                progress_bar.UpdateBar(row['Frame Count'], len(sdatadb))
-                if row['Shutter Speed'][-1:] == '"':
-                    ShutterSpeed = row['Shutter Speed'][:-1]
-                elif row['Shutter Speed'][-1:] == "'":
+            for _, row in sd_data_db.iterrows():
+                progress_bar.UpdateBar(row['Frame Count'], len(sd_data_db))
+                ShutterSpeed = str(row['Shutter Speed'])
+                if ShutterSpeed[-1:] == "'":
                     ShutterSpeed = 60 * float(row['Shutter Speed'][:-1])
+                elif ShutterSpeed[-1:] != '"':
+                    ShutterSpeed = "1/" + ShutterSpeed
                 else:
-                    ShutterSpeed = "1/" + row['Shutter Speed']
-                tags_dict = {"Make": "Nikon",
-                             "Model": "F5",
-                             "Lens": row['Focal Length'] + "mm f/" + row['Max. Aperture'][1:],
-                             "ISO": row['ISO'],
-                             "FocalLength": row['Focal Length'],
-                             "FocalLengthIn35mmFormat": row['Focal Length'],
-                             "FNumber": row['Aperture'][1:],
-                             "ExposureTime": ShutterSpeed
+                    ShutterSpeed = row['Shutter Speed']
+                Focal_Length = str(row['Focal Length'])
+                tags_dict = {'Model': my_camera_model,
+                             'Lens': Focal_Length + 'mm f/' + str(row['Max. Aperture'])[1:],
+                             'ISO': ISO,
+                             'FocalLength': Focal_Length,
+                             'FocalLengthIn35mmFormat': Focal_Length,
+                             'FNumber': row['Aperture'][1:],
+                             'ExposureTime': ShutterSpeed,
+                             'SerialNumber': my_camera_serial_number
                              }
                 if 'Metering System' in row:
                     if row['Metering System'][-6:] == 'Matrix':
-                        MeteringMode = "Multi-segment"
+                        MeteringMode = 'Multi-segment'
                     elif row['Metering System'] == 'Center-weighted':
-                        MeteringMode = "Center-weighted average"
+                        MeteringMode = 'Center-weighted average'
                     else:
-                        MeteringMode = "Spot"
+                        MeteringMode = 'Spot'
                     tags_dict.update({'MeteringMode': MeteringMode})
                 if 'Day' in row:
-                    mydate = row['Day'].split("/")
-                    DateTimeOriginal = mydate[2] + ":" + mydate[0].zfill(2) + ":" + mydate[1].zfill(2) + " " + row[
-                        'Time']
-                    tags_dict.update({'DateTimeOriginal': DateTimeOriginal})
+                    mydate = row['Day'].split('/')
+                    DateTimeOriginal = mydate[2] + ':' + mydate[0].zfill(2) + ':' + mydate[1].zfill(2) + ' ' + row['Time']
+                    tags_dict.update({'DateTimeOriginal': DateTimeOriginal,
+                                      'CreateDate': DateTimeOriginal,
+                                      'DateCreated': DateTimeOriginal})
                 if 'Exposure Mode' in row:
-                    if row['Exposure Mode'] == "Aperture-Priority Auto":
-                        ExposureProgram = "Aperture-priority AE"
-                    elif row['Exposure Mode'] == "Manual Exposure":
-                        ExposureProgram = "Manual"
-                    elif row['Exposure Mode'] == "Program Exposure":
-                        ExposureProgram = "Program AE"
+                    if row['Exposure Mode'] == 'Aperture-Priority Auto':
+                        ExposureProgram = 'Aperture-priority AE'
+                    elif row['Exposure Mode'] == 'Manual Exposure':
+                        ExposureProgram = 'Manual'
+                    elif row['Exposure Mode'] == 'Program Exposure':
+                        ExposureProgram = 'Program AE'
                     else:
-                        ExposureProgram = "Shutter speed priority AE"
+                        ExposureProgram = 'Shutter speed priority AE'
                     tags_dict.update({'ExposureProgram': ExposureProgram})
                 if 'Exposure Comp.' in row:
-                    tags_dict.update({"ExposureCompensation": row['Exposure Comp.']})
-                ScanImageStem = (Path(config.get("NikonFData", "path")).stem +
-                                 "-" + row['Frame Count'])
-                ScanImageRoot = Path(config.get("ScannedImagesPath", "path"))
-                ScanImagePath = Path(ScanImageRoot / ScanImageStem).with_suffix(".JPG")
-                if Path(ScanImageRoot / ScanImageStem).with_suffix(".jpg").is_file():
-                    ScanImagePath = Path(ScanImageRoot / ScanImageStem).with_suffix(".jpg")
+                    tags_dict.update({'ExposureCompensation': row['Exposure Comp.']})
+                ScanImageStem = str(sd_data_file.stem) + "-" + str(row['Frame Count'])
+                ScanImageRoot = Path(config.get('ScannedImagesPath', 'path'))
+                ScanImagePath = Path(ScanImageRoot / ScanImageStem).with_suffix('.JPG')
+                if Path(ScanImageRoot / ScanImageStem).with_suffix('.jpg').is_file():
+                    ScanImagePath = Path(ScanImageRoot / ScanImageStem).with_suffix('.jpg')
                 if ScanImagePath.is_file():
                     with ExifToolHelper() as et:
                         et.set_tags(
@@ -246,5 +238,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.""",
                                    'convention? This application will keep going and try the next one in the ' +
                                    'sequence until the end of the roll.', title='Error: scanned image not found.')
             progress_win.close()
-            sg.popup_ok("Process complete for Shooting Data " +
-                        Path(config.get("NikonFData", "path")).stem, title="Process complete")
+            sg.popup_ok('Process complete for Shooting Data ' +
+                        Path(config.get('NikonFData', 'path')).stem +
+                        '.\nThe application will now close.', title='Process complete')
+            sys.exit(0)
