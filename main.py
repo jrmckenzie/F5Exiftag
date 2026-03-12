@@ -86,10 +86,6 @@ def set_shooting_data_dir():
     while True:
         event, values = locwindow.read()
         if event == sg.WIN_CLOSED:
-            if values is not None:
-                if values['SDloc'] is not None and len(values['SDloc']) > 1:
-                    break
-            else:
                 sg.popup('You must specify the path to your Nikon Shooting Data folder for this application to work. '
                          'The application will now close.')
                 sys.exit()
@@ -101,10 +97,10 @@ def set_shooting_data_dir():
                 continue
             if not config.has_section('NikonSData'):
                 config.add_section('NikonSData')
+            config.set('NikonSData', 'path', shooting_data_path)
             if not config.has_section('ScannedImagesPath'):
                 config.add_section('ScannedImagesPath')
-            config.set('NikonSData', 'path', values['SDloc'])
-            config.set('ScannedImagesPath', 'path', values['SDloc'])
+            config.set('ScannedImagesPath', 'path', shooting_data_path)
             with open(path_to_config, 'w') as iconfigfile:
                 config.write(iconfigfile)
                 iconfigfile.close()
@@ -221,17 +217,7 @@ if __name__ == "__main__":
     filmdata_window = make_filmdata_window(my_title, my_desc, my_file_type)
     while True:
         event, values = filmdata_window.read()
-        if event == sg.WIN_CLOSED:
-            if values is not None:
-                if values['FDloc'] is not None and len(values['FDloc']) > 1 and values['SIloc'] is not None and len(
-                        values['SIloc']) > 1:
-                    break
-            else:
-                sg.popup(
-                    'You must specify the path to your Nikon Shooting Data file and your Scanned Images folder ' +
-                    'for this application to work. The application will now close.')
-                sys.exit()
-        elif event == 'Exit':
+        if event == 'Exit' or event == sg.WIN_CLOSED:
             sys.exit()
         elif event == 'About':
             about_popup()
@@ -265,6 +251,5 @@ if __name__ == "__main__":
             sd_data_file = Path(sd_data_file)
             tags_dict = save_tags_dict(sd_data_file)
             sg.popup_ok('Process complete for Shooting Data ' +
-                        Path(config.get('NikonFData', 'path')).stem +
-                        '.\nThe application will now close.', title='Process complete')
-            sys.exit(0)
+                        Path(config.get('NikonFData', 'path')).stem + '.', title='Process complete')
+            continue
