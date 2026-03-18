@@ -18,20 +18,17 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import csv
 import sys
 import configparser
 import FreeSimpleGUI as sg
 from pathlib import Path
 from exiftool import ExifToolHelper
 import pandas as pd
-import linecache
-from io import StringIO
 
 version_number = '1.0.0'
 version_date = '01/03/2026'
 my_camera_model = "NIKON F5"
-my_camera_serial_number = 3150115
+my_camera_serial_number = 3000000
 ISO = 100
 
 sg.theme('SystemDefault')
@@ -108,24 +105,25 @@ def set_shooting_data_dir():
     locwindow.close()
 
 
-def make_filmdata_window(program_title, program_desc, my_file_type):
+def make_filmdata_window(program_title, program_desc, my_file_type, scans_y):
     fd_layout = [[sg.Text('F5Exiftag - Tag Nikon F5 film scans with EXIF data', font=('Arial', 12, 'bold'))],
                  [sg.Text(program_desc, size=(45, 5))],
                  [sg.Text('Please locate your Nikon Shooting Data file:')],
                  [sg.Input(key='-IN3-', change_submits=False, readonly=True),
                   sg.FileBrowse(key='FDloc', initial_folder=config.get('NikonSData', 'path'),
-                                file_types=((my_file_type), ('All Files', '*.*')))],
-                 [sg.Text('Please locate your Scanned Images folder:')],
+                                file_types=((my_file_type), ('All Files', '*.*')))]]
+    if scans_y:
+        fd_layout = [fd_layout, [sg.Text('Please locate your Scanned Images folder:')],
                  [sg.Input(key='-IN4-', change_submits=False, readonly=True),
-                  sg.FolderBrowse(key='SIloc', initial_folder=config.get('ScannedImagesPath', 'path')), ],
-                 [sg.Button('Go!'), sg.Button('About'), sg.Button('Licence'), sg.Button('Exit')],
+                  sg.FolderBrowse(key='SIloc', initial_folder=config.get('ScannedImagesPath', 'path')), ]]
+    fd_layout = [fd_layout, [sg.Button('Go!'), sg.Button('About'), sg.Button('Licence'), sg.Button('Exit')],
                  [sg.Text('v' + version_number + ' Copyright © ' + version_date[-4:] + ' JR McKenzie',
                           font=('Arial', 8, 'normal'))],
                  ]
     return sg.Window(program_title, fd_layout)
 
 
-def save_tags_dict(sd_data_file):
+def save_tags_dict(sd_data_file, ISO):
     sd_data_db = pd.read_csv(sd_data_file, header=1)
     # Iterate through the frames on the film - pop up a progress bar window
     progress_layout = [
@@ -214,7 +212,7 @@ if __name__ == "__main__":
     my_desc = ('Tag a batch of scanned files (in jpeg format) with the Shooting Data exported from Nikon' +
                     ' Photo Secretary AC-1WE for F5')
     my_title = 'F5Exiftag'
-    filmdata_window = make_filmdata_window(my_title, my_desc, my_file_type)
+    filmdata_window = make_filmdata_window(my_title, my_desc, my_file_type, True)
     while True:
         event, values = filmdata_window.read()
         if event == 'Exit' or event == sg.WIN_CLOSED:
@@ -239,17 +237,10 @@ if __name__ == "__main__":
             with open(path_to_config, 'w') as iconfigfile:
                 config.write(iconfigfile)
                 iconfigfile.close()
-            sd_data_file = values['FDloc']
-            try:
-                firstline = linecache.getline(sd_data_file, 1)
-                reader = csv.reader(StringIO(firstline))
-                for csvRow in reader:
-                    ISO = csvRow[3]
-            except FileNotFoundError:
-                sg.popup('Error: Shooting Data file not found.')
-                sys.exit('Error: Shooting Data file not found.')
-            sd_data_file = Path(sd_data_file)
-            tags_dict = save_tags_dict(sd_data_file)
+            sd_data_file = Path(values['FDloc'])
+            sd_data_db_firstrow = pd.read_csv(sd_data_file, header=None, nrows=1)
+            ISO = sd_data_db_firstrow.iloc[0,3]
+            tags_dict = save_tags_dict(sd_data_file, ISO)
             sg.popup_ok('Process complete for Shooting Data ' +
                         Path(config.get('NikonFData', 'path')).stem + '.', title='Process complete')
             continue
