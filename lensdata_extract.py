@@ -46,7 +46,7 @@ if config.has_option('NikonSData', 'path'):
 else:
     sys.exit('Please run the main.py script first to configure the Nikon / Shooting Data folder, and try again.')
 image_dir = Path(shooting_data_path).parent / "Lenses"
-pathlist = image_dir.rglob('*.JPG')
+pathlist = image_dir.glob('*.JPG')
 nikon_lens_db_path = script_path / "lens_tagging" / "nikon_lens_db.csv"
 nikon_lens_db = pd.read_csv(nikon_lens_db_path, index_col=0)
 appended_data = []
