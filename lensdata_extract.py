@@ -18,11 +18,51 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# OK so if you want to try and use these scripts for tagging lens data be warned this is
+# messy, not user-friendly and instructions are poor.
+#
+# There is some initial setup to be done once to build EXIF profiles of each of
+# your Nikon lenses.
+#
 # Using a Nikon DSLR, shoot one photograph with each of your AF lenses and your AI-P lenses
 # (by AI-P we mean manual focus lenses with CPU such as Voigtlander SL-II, Zeiss ZF.2,
-# Samyang etc). Then create a subdirectory of your Nikon Shooting Data directory named
-# "Lenses" and copy the JPG of each of those photos there. These will serve as templates
-# for the EXIF metadata for the images tagged with a particular lens by this utility.
+# Samyang etc). Set the camera to Manual and shoot them at a high shutter speed with the
+# lens cap on so the embedded thumbnails will be black. Make sure the camera will save
+# the shots in JPG format.
+#
+# Then create a subdirectory of your Nikon directory named "Lenses" and # copy the JPG of
+# each of those photos from the camera's memory card to there. These will serve as
+# templates for the EXIF metadata for the images tagged with a particular lens by this
+# utility. Say you have created a "Nikon" directory inside your Documents directory. The
+# "Nikon" directory should have two subdirectories: "Lenses" and "Shooting Data". You put
+# your lens JPGs in "Lenses" and your Shooting Data .txt files in "Shooting Data".
+#
+# Documents/
+# ├─ Nikon/
+# │  ├─ Lenses/
+# │  ├─ Shooting Data/
+#
+# Now you've got that setup it's time to run this script. It will create a small csv
+# file which will contain details of the name, focal length and location of the
+# reference JPG image of each of the lenses in your collection. You won't need to
+# run lensdata_extract.py again unless you have a new lens to add to your collection
+# or if you delete the F5Exiftag directory containing this script and its
+# sub-directory named lens_tagging.
+#
+# Once this setup is done you can use the lens_chooser.py script to associate every
+# image on your scanned film roll with one of your lenses and then run
+# lens_tag_writer.py to actually tag your scans.
+#
+# What will happen ultimately is that all the EXIF data in the DSLR-shot JPG will be
+# copied to the scanned image from your F5 film roll. Then the camera model (NIKON F5),
+# shutter speed, aperture and film speed ISO from the F5 shooting data will overwrite
+# the DSLR's metadata for these items only. Yes it's messy and all the rest of the
+# DSLR's own metadata will remain. Including date and time. Unless you've been using
+# the MF-28 multifunction back with the F5 and configured it to save date and time
+# into the shooting data. You're probably better using something like Lenstagger from
+# https://www.lenstagger.com/ if you can. Much easier.
+#
+# This script doesn't have a GUI. You just run it in the console / command line.
 
 import sys
 import configparser

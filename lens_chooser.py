@@ -30,8 +30,6 @@ sg.theme('SystemDefault')
 config = configparser.ConfigParser()
 path_to_config = script_path / 'config.ini'
 my_nikon_lenses_path = script_path / "lens_tagging" / "my_nikon_lenses.csv"
-my_nikon_lenses_db = pd.read_csv(my_nikon_lenses_path, index_col=0)
-my_lens_id_list = my_nikon_lenses_db["LensID"].values.tolist()
 ISO = 100
 
 config.read(path_to_config)
@@ -60,6 +58,8 @@ if __name__ == "__main__":
                             ' from Nikon Photo Secretary AC-1WE for F5.')
     my_title = 'F5Exiftool - lens chooser'
     my_file_type = 'Text documents', '*.txt'
+    my_nikon_lenses_db = pd.read_csv(my_nikon_lenses_path, index_col=0)
+    my_lens_id_list = my_nikon_lenses_db["LensID"].values.tolist()
     filmdata_window = make_filmdata_window(my_title, my_desc, my_file_type, False)
     while True:
         event, values = filmdata_window.read()
