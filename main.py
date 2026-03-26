@@ -72,7 +72,7 @@ your Shooting Data is saved in a file named
     title="About F5Exiftag")
     return True
 
-def set_shooting_data_dir():
+def settings_window():
     sd_dir = ''
     camera_model = 'Nikon F5'
     camera_serial_nr = ''
@@ -92,7 +92,6 @@ def set_shooting_data_dir():
                   sg.Text('Camera serial number'), sg.Input(key='-IN4-', size=8, default_text=camera_serial_nr)],
                  [sg.Button('Save'), sg.Button('Cancel')]]
     locwindow = sg.Window('Settings', loclayout)
-    locwindow['SDloc'].InitialFolder = sd_dir
     while True:
         event, values = locwindow.read()
         if event == sg.WIN_CLOSED:
@@ -124,11 +123,7 @@ def set_shooting_data_dir():
                 iconfigfile.close()
             break
         elif event == 'Cancel':
-            if values['SDloc'] is not None and len(values['SDloc']) > 1:
-                shooting_data_path = values['SDloc']
-            elif config.has_option('NikonSData', 'path'):
-                shooting_data_path = config.get('NikonSData', 'path')
-            else:
+            if not config.has_option('NikonSData', 'path'):
                 sg.popup('Please browse for the path to your Nikon Shooting Data folder and try again.')
                 continue
             break
@@ -241,7 +236,7 @@ if __name__ == "__main__":
         shooting_data_path = config.get('NikonSData', 'path')
     else:
         filmdata_window_created = False
-        set_shooting_data_dir()
+        settings_window()
     my_file_type = 'Shooting data text files', '*.txt'
     my_desc = ('Tag a batch of scanned files (in jpeg format) with the Shooting Data exported from Nikon' +
                     ' Photo Secretary AC-1WE for F5')
@@ -257,7 +252,7 @@ if __name__ == "__main__":
         elif event == 'Settings':
             filmdata_window_created = True
             filmdata_window.hide()
-            set_shooting_data_dir()
+            settings_window()
         elif event == 'Licence':
             licence_popup()
             continue

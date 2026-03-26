@@ -25,7 +25,7 @@ from pathlib import Path
 from exiftool import ExifToolAlpha, ExifToolHelper
 import pandas as pd
 
-from main import script_path, version_number, version_date, my_camera_model, my_camera_serial_number, licence_popup, set_shooting_data_dir, make_filmdata_window
+from main import script_path, version_number, version_date, my_camera_model, my_camera_serial_number, licence_popup, settings_window, make_filmdata_window
 
 my_nikon_lenses_path = Path('lens_tagging/my_nikon_lenses.csv')
 
@@ -142,7 +142,7 @@ your Shooting Data is saved in a file named
 if config.has_option('NikonSData', 'path'):
     shooting_data_path = config.get('NikonSData', 'path')
 else:
-    set_shooting_data_dir()
+    settings_window()
 
 if __name__ == "__main__":
     my_file_type = 'Shooting data with lens info', '*.wld'

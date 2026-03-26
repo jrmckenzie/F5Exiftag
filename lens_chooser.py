@@ -24,7 +24,7 @@ from pathlib import Path
 import FreeSimpleGUI as sg
 import pandas as pd
 
-from main import script_path, version_number, version_date, licence_popup, set_shooting_data_dir, make_filmdata_window
+from main import script_path, version_number, version_date, licence_popup, settings_window, make_filmdata_window
 
 sg.theme('SystemDefault')
 config = configparser.ConfigParser()
@@ -51,7 +51,7 @@ config.read(path_to_config)
 if config.has_option('NikonSData', 'path'):
     shooting_data_path = config.get('NikonSData', 'path')
 else:
-    set_shooting_data_dir()
+    settings_window()
 
 if __name__ == "__main__":
     my_desc = ('Choose the lenses matching each frame in the Shooting Data previously imported' +
