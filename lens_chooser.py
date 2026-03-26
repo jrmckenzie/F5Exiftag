@@ -29,10 +29,9 @@ from main import script_path, version_number, version_date, licence_popup, setti
 sg.theme('SystemDefault')
 config = configparser.ConfigParser()
 path_to_config = script_path / 'config.ini'
+config.read(path_to_config)
 my_nikon_lenses_path = script_path / "lens_tagging" / "my_nikon_lenses.csv"
 ISO = 100
-
-config.read(path_to_config)
 film_lens_chooser_active = False
 
 def make_lens_chooser_window(my_sd_filename):
@@ -46,7 +45,6 @@ def make_lens_chooser_window(my_sd_filename):
     this_layout = [[sg.Column(lens_layout, scrollable=False, vertical_scroll_only=True)]]
     return sg.Window('Lens chooser', this_layout, finalize=True)
 
-config.read(path_to_config)
 # Read configuration and find location of Nikon Shooting Data folder, or ask user to set it
 if config.has_option('NikonSData', 'path'):
     shooting_data_path = config.get('NikonSData', 'path')

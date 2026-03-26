@@ -25,7 +25,7 @@ from pathlib import Path
 from exiftool import ExifToolAlpha, ExifToolHelper
 import pandas as pd
 
-from main import script_path, version_number, version_date, my_camera_model, my_camera_serial_number, licence_popup, settings_window, make_filmdata_window
+from main import script_path, version_number, version_date, licence_popup, settings_window, make_filmdata_window
 
 my_nikon_lenses_path = Path('lens_tagging/my_nikon_lenses.csv')
 
@@ -53,6 +53,8 @@ def save_tags_dict_with_lenses(sd_data_file):
     progress_win.bring_to_front()
     progress_win.force_focus()
     progress_bar = progress_win.find_element('progress')
+    my_camera_model = config.get('CameraModel', 'name')
+    my_camera_serial_number = int(config.get('CameraSerialNr', 'number') or 0)
     for _, row in sd_data_db.iterrows():
         progress_bar.UpdateBar(row['Frame Count'], len(sd_data_db))
         ShutterSpeed = str(row['Shutter Speed'])

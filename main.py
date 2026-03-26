@@ -34,6 +34,7 @@ sg.theme('SystemDefault')
 config = configparser.ConfigParser()
 script_path = Path(__file__).absolute().parent
 path_to_config = script_path / 'config.ini'
+config.read(path_to_config)
 
 def licence_popup():
     sg.popup("""This program is free software: you can redistribute it and/or modify
@@ -230,8 +231,6 @@ def save_tags_dict(sd_data_file, ISO):
     return True
 
 if __name__ == "__main__":
-    config.read(path_to_config)
-    # Read configuration and find location of Nikon Shooting Data folder, or ask user to set it
     if config.has_option('NikonSData', 'path'):
         shooting_data_path = config.get('NikonSData', 'path')
     else:
