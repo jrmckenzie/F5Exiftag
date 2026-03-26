@@ -27,8 +27,6 @@ import pandas as pd
 
 version_number = '1.0.0'
 version_date = '01/03/2026'
-my_camera_model = "NIKON F5"
-my_camera_serial_number = 3000000
 ISO = 100
 
 sg.theme('SystemDefault')
@@ -75,11 +73,26 @@ your Shooting Data is saved in a file named
     return True
 
 def set_shooting_data_dir():
+    sd_dir = ''
+    camera_model = 'Nikon F5'
+    camera_serial_nr = ''
+    if config.has_section('NikonSData'):
+        sd_dir = config.get('NikonSData', 'path')
+    if config.has_section('CameraModel'):
+        camera_model = config.get('CameraModel', 'name')
+    if config.has_option('CameraSerialNr', 'number'):
+        camera_serial_nr = config.get('CameraSerialNr', 'number')
     loclayout = [[sg.T('')],
-                 [sg.Text('Please locate your Nikon Shooting Data folder:'), sg.Input(key='-IN2-', change_submits=False,
-                                                                                      readonly=True),
-                  sg.FolderBrowse(key='SDloc')], [sg.Button('Save')]]
-    locwindow = sg.Window('Configure path to Nikon Shooting Data folder', loclayout)
+                 [sg.Text('Please locate your Nikon Shooting Data folder:'),
+                  sg.Input(key='-IN2-', default_text=sd_dir, change_submits=False,
+                           readonly=True),
+                  sg.FolderBrowse(key='SDloc', initial_folder=sd_dir)],
+                 [sg.Text('Camera model:'), sg.Combo(['Nikon F5', 'Nikon F90x', 'Nikon F100', 'Nikon F6'],
+                                                     default_value=camera_model, readonly=True, key='-IN3-'),
+                  sg.Text('Camera serial number'), sg.Input(key='-IN4-', size=8, default_text=camera_serial_nr)],
+                 [sg.Button('Save'), sg.Button('Cancel')]]
+    locwindow = sg.Window('Settings', loclayout)
+    locwindow['SDloc'].InitialFolder = sd_dir
     while True:
         event, values = locwindow.read()
         if event == sg.WIN_CLOSED:
@@ -89,12 +102,20 @@ def set_shooting_data_dir():
         elif event == 'Save':
             if values['SDloc'] is not None and len(values['SDloc']) > 1:
                 shooting_data_path = values['SDloc']
+            elif config.has_option('NikonSData', 'path'):
+                shooting_data_path = config.get('NikonSData', 'path')
             else:
                 sg.popup('Please browse for the path to your Nikon Shooting Data folder and try again.')
                 continue
             if not config.has_section('NikonSData'):
                 config.add_section('NikonSData')
             config.set('NikonSData', 'path', shooting_data_path)
+            if not config.has_section('CameraModel'):
+                config.add_section('CameraModel')
+            config.set('CameraModel', 'name', values['-IN3-'])
+            if not config.has_section('CameraSerialNr'):
+                config.add_section('CameraSerialNr')
+            config.set('CameraSerialNr', 'number', values['-IN4-'])
             if not config.has_section('ScannedImagesPath'):
                 config.add_section('ScannedImagesPath')
             config.set('ScannedImagesPath', 'path', shooting_data_path)
@@ -102,7 +123,19 @@ def set_shooting_data_dir():
                 config.write(iconfigfile)
                 iconfigfile.close()
             break
+        elif event == 'Cancel':
+            if values['SDloc'] is not None and len(values['SDloc']) > 1:
+                shooting_data_path = values['SDloc']
+            elif config.has_option('NikonSData', 'path'):
+                shooting_data_path = config.get('NikonSData', 'path')
+            else:
+                sg.popup('Please browse for the path to your Nikon Shooting Data folder and try again.')
+                continue
+            break
     locwindow.close()
+    if filmdata_window_created:
+        filmdata_window.un_hide()
+    return True
 
 
 def make_filmdata_window(program_title, program_desc, my_file_type, scans_y):
@@ -116,7 +149,7 @@ def make_filmdata_window(program_title, program_desc, my_file_type, scans_y):
         fd_layout = [fd_layout, [sg.Text('Please locate your Scanned Images folder:')],
                  [sg.Input(key='-IN4-', change_submits=False, readonly=True),
                   sg.FolderBrowse(key='SIloc', initial_folder=config.get('ScannedImagesPath', 'path')), ]]
-    fd_layout = [fd_layout, [sg.Button('Go!'), sg.Button('About'), sg.Button('Licence'), sg.Button('Exit')],
+    fd_layout = [fd_layout, [sg.Button('Go!'), sg.Button('About'), sg.Button('Settings'), sg.Button('Licence'), sg.Button('Exit')],
                  [sg.Text('v' + version_number + ' Copyright © ' + version_date[-4:] + ' JR McKenzie',
                           font=('Arial', 8, 'normal'))],
                  ]
@@ -134,6 +167,8 @@ def save_tags_dict(sd_data_file, ISO):
     progress_win.bring_to_front()
     progress_win.force_focus()
     progress_bar = progress_win.find_element('progress')
+    my_camera_model = config.get('CameraModel', 'name')
+    my_camera_serial_number = int(config.get('CameraSerialNr', 'number') or 0)
     for _, row in sd_data_db.iterrows():
         progress_bar.UpdateBar(row['Frame Count'], len(sd_data_db))
         ShutterSpeed = str(row['Shutter Speed'])
@@ -199,15 +234,14 @@ def save_tags_dict(sd_data_file, ISO):
     progress_win.close()
     return True
 
-
-config.read(path_to_config)
-# Read configuration and find location of Nikon Shooting Data folder, or ask user to set it
-if config.has_option('NikonSData', 'path'):
-    shooting_data_path = config.get('NikonSData', 'path')
-else:
-    set_shooting_data_dir()
-
 if __name__ == "__main__":
+    config.read(path_to_config)
+    # Read configuration and find location of Nikon Shooting Data folder, or ask user to set it
+    if config.has_option('NikonSData', 'path'):
+        shooting_data_path = config.get('NikonSData', 'path')
+    else:
+        filmdata_window_created = False
+        set_shooting_data_dir()
     my_file_type = 'Shooting data text files', '*.txt'
     my_desc = ('Tag a batch of scanned files (in jpeg format) with the Shooting Data exported from Nikon' +
                     ' Photo Secretary AC-1WE for F5')
@@ -220,6 +254,10 @@ if __name__ == "__main__":
         elif event == 'About':
             about_popup()
             continue
+        elif event == 'Settings':
+            filmdata_window_created = True
+            filmdata_window.hide()
+            set_shooting_data_dir()
         elif event == 'Licence':
             licence_popup()
             continue
