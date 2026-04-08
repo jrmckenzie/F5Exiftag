@@ -17,7 +17,7 @@ Then run main.py. It will ask where your Nikon Shooting Data folder is then ask 
 
 There are some other scripts and directories besides main.py but these are experimental bits and pieces probably best left alone. See below.
 
-If you want it to tag the files with your camera's serial number you can edit main.py and change that value in the line which begins my_camera_serial_number =.
+If you want it to tag the files with your camera's serial number you can press the Settings button and enter the 7 digit serial number.
 
 Experimental, maybe don't bother trying
 =======================================
