@@ -129,8 +129,6 @@ def settings_window():
                 continue
             break
     locwindow.close()
-    if filmdata_window_created:
-        filmdata_window.un_hide()
     return True
 
 
@@ -234,7 +232,6 @@ if __name__ == "__main__":
     if config.has_option('NikonSData', 'path'):
         shooting_data_path = config.get('NikonSData', 'path')
     else:
-        filmdata_window_created = False
         settings_window()
     my_file_type = 'Shooting data text files', '*.txt'
     my_desc = ('Tag a batch of scanned files (in jpeg format) with the Shooting Data exported from Nikon' +
@@ -249,9 +246,10 @@ if __name__ == "__main__":
             about_popup()
             continue
         elif event == 'Settings':
-            filmdata_window_created = True
             filmdata_window.hide()
             settings_window()
+            filmdata_window.un_hide()
+            continue
         elif event == 'Licence':
             licence_popup()
             continue

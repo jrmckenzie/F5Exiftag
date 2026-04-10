@@ -159,6 +159,11 @@ if __name__ == "__main__":
         elif fevent == 'About':
             about_popup()
             continue
+        elif fevent == 'Settings':
+            filmdata_window.hide()
+            settings_window()
+            filmdata_window.un_hide()
+            continue
         elif fevent == 'Licence':
             licence_popup()
             continue
@@ -178,5 +183,5 @@ if __name__ == "__main__":
                 iconfigfile.close()
             sd_data_file = Path(config.get("NikonFDataLenses", "path"))
             tags_dict = save_tags_dict_with_lenses(sd_data_file)
-        sg.popup_ok('Process complete for Shooting Data ' +
+            sg.popup_ok('Process complete for Shooting Data ' +
                     Path(config.get("NikonFDataLenses", "path")).stem + '.', title='Process complete')

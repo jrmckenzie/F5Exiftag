@@ -42,8 +42,29 @@ def make_lens_chooser_window(my_sd_filename):
             [sg.T(row['Frame Count']), sg.T(str(row['Focal Length']) + "mm"), sg.T(str(row['Max. Aperture'])),
              sg.Combo(my_lens_id_list, key=row['Frame Count'], readonly=False)]]
     lens_layout = lens_layout + [[sg.Button('Save'), sg.Button('Cancel')]]
-    this_layout = [[sg.Column(lens_layout, scrollable=False, vertical_scroll_only=True)]]
+    this_layout = [[sg.Column(lens_layout, scrollable=True, vertical_scroll_only=True)]]
     return sg.Window('Lens chooser', this_layout, finalize=True)
+
+def about_popup():
+    sg.popup("""This is a tool for Nikon F5 camera users who connect their
+camera to a PC or Mac with a serial cable and use Nikon
+Photo Secretary for F5 to save the Shooting Data from a
+roll of film.
+
+You need to use the "Convert Data" function in Photo
+Secretary for F5 to save the shooting data in a text
+format readable by this software.
+
+You also need your film scans all saved as JPG and
+named according to a strict naming convention. e.g. if
+your Shooting Data is saved in a file named
+"2550103.txt" then the JPG files must be named
+"2550103-1.JPG", "2550103-2.JPG" etc.""",
+    "Version " + version_number + " / " + version_date + "\n" +
+    "Copyright © " + version_date[-4:] + " JR McKenzie (jrmknz@yahoo.co.uk)\n" +
+    "https://github.com/jrmckenzie/F5Exiftag\n",
+    title="About F5Exiftag")
+    return True
 
 # Read configuration and find location of Nikon Shooting Data folder, or ask user to set it
 if config.has_option('NikonSData', 'path'):
@@ -64,24 +85,13 @@ if __name__ == "__main__":
         if event == 'Exit' or event == sg.WIN_CLOSED:
             sys.exit()
         elif event == 'About':
-            sg.popup("""This is a tool for Nikon F5 camera users who connect their
-    camera to a PC or Mac with a serial cable and use Nikon
-    Photo Secretary for F5 to save the Shooting Data from a
-    roll of film.
-    
-    You need to use the "Convert Data" function in Photo
-    Secretary for F5 to save the shooting data in a text
-    format readable by this software.
-    
-    You also need your film scans all saved as JPG and
-    named according to a strict naming convention. e.g. if
-    your Shooting Data is saved in a file named
-    "2550103.txt" then the JPG files must be named
-    "2550103-1.JPG", "2550103-2.JPG" etc.""",
-                     "Version " + version_number + " / " + version_date + "\n" +
-                     "Copyright © " + version_date[-4:] + " JR McKenzie (jrmknz@yahoo.co.uk)\n" +
-                     "https://github.com/jrmckenzie/F5Exiftag\n",
-                     title="About F5Exiftag")
+            about_popup()
+            continue
+        elif event == 'Settings':
+            filmdata_window.hide()
+            settings_window()
+            filmdata_window.un_hide()
+            continue
         elif event == 'Licence':
             licence_popup()
             continue
