@@ -27,11 +27,11 @@ Before I heard of [Lenstagger](https://www.lenstagger.com/) I wrote some hacky s
 To do, maybe
 ============
 
-* Compatibility with the data files output by [Nikon AC-2WE Photo Secretary for F100](https://cdn-10.nikon-cdn.com/pdf/manuals/archive/AC-2WE%20Photo%20Secretary%20II%20for%20F100%20-%20Windows.pdf) and [SoftTALK-2000](https://www.cocoon-creations.com/COCOON-NiCommSoftTALK-98.shtml). This would bring compatibility with Nikon F90x, F100 and F6. Should be pretty easy to do. I don't have any of those cameras to be able to try it and test it.
+* Compatibility with the data files output by [Nikon AC-2WE Photo Secretary II for F100](https://cdn-10.nikon-cdn.com/pdf/manuals/archive/AC-2WE%20Photo%20Secretary%20II%20for%20F100%20-%20Windows.pdf) and [SoftTALK-2000](https://www.cocoon-creations.com/COCOON-NiCommSoftTALK-98.shtml). This would bring compatibility with Nikon F90x, F100 and F6. Should be pretty easy to do. I don't have any of those cameras to be able to try it and test it. However, I am starting work on compatibility with AC-2WE Nikon Photo Secretary II for F100 and may be able to test with an F90x.
 
 * More in the way of documentation or code comments. Good luck trying to understand or follow any of the code. I'm no coder and don't even know how to use github properly. This repository only really exists so I can maintain copies of my own code for my own use and remind myself how to use it. And the offchance it may be of interest to someone else.
 
 Donations
 =========
 
-Are welcome via https://ko-fi.com/jzmck as are gifts of F90x, F100 and F6 cameras in working order.
+Are welcome via https://ko-fi.com/jzmck as are gifts of F100 and F6 cameras in working order.
