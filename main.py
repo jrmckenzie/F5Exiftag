@@ -149,10 +149,8 @@ def make_filmdata_window(program_title, program_desc, my_file_type, scans_y):
                  ]
     return sg.Window(program_title, fd_layout)
 
-
-def save_tags_dict(sd_data_file, ISO):
-    sd_data_db = pd.read_csv(sd_data_file, header=1)
-    # Iterate through the frames on the film - pop up a progress bar window
+def save_tags_dict(sd_data_file, ISO, PS_version):
+    # Iterate through the frames on the film - but first, pop up a progress bar window
     progress_layout = [
         [sg.Text('Processing scanned images')],
         [sg.ProgressBar(1, orientation='h', key='progress', size=(25, 15))]
@@ -163,6 +161,14 @@ def save_tags_dict(sd_data_file, ISO):
     progress_bar = progress_win.find_element('progress')
     my_camera_model = config.get('CameraModel', 'name')
     my_camera_serial_number = int(config.get('CameraSerialNr', 'number') or 0)
+    if PS_version == 'AC-1WE':
+        sd_data_db = pd.read_csv(sd_data_file, header=1)
+    elif PS_version == 'AC-2WE':
+        sd_data_cols = ['Frame Count', 'Shutter Speed', 'Aperture', 'Focal Length', 'Max. Aperture', 'Metering System',
+                        'Exposure Mode', 'Flash Sync Mode', 'Exposure Comp.', 'J', 'K', 'L', 'Data Imprinting', 'Day',
+                        'Time']
+        sd_data_db = pd.read_csv(sd_data_file, header=None, skiprows=1, sep='\t',
+                                 usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], names=sd_data_cols)
     for _, row in sd_data_db.iterrows():
         progress_bar.UpdateBar(row['Frame Count'], len(sd_data_db))
         ShutterSpeed = str(row['Shutter Speed'])
@@ -269,8 +275,17 @@ if __name__ == "__main__":
                 iconfigfile.close()
             sd_data_file = Path(values['FDloc'])
             sd_data_db_firstrow = pd.read_csv(sd_data_file, header=None, nrows=1)
-            ISO = sd_data_db_firstrow.iloc[0,3]
-            tags_dict = save_tags_dict(sd_data_file, ISO)
+            if sd_data_db_firstrow.iloc[0,0] == 'Film Title':
+                # This file was created by AC-1WE Photo Secretary for F5
+                # comma delimited, first row contains film iso, title and comments, headers in second row
+                ISO = str(sd_data_db_firstrow.iloc[0,3]).strip()
+                tags_dict = save_tags_dict(sd_data_file, ISO, 'AC-1WE')
+            else:
+                # Assume this file was created by AC-2WE Photo Secretary II for F100
+                # tab delimited, first row contains film iso, title and comments, no headers
+                sd_data_db_firstrow = pd.read_csv(sd_data_file, sep='\t', header=None, nrows=1)
+                ISO = str(sd_data_db_firstrow.iloc[0,0]).strip()
+                tags_dict = save_tags_dict(sd_data_file, ISO, 'AC-2WE')
             sg.popup_ok('Process complete for Shooting Data ' +
                         Path(config.get('NikonFData', 'path')).stem + '.', title='Process complete')
             continue
