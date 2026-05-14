@@ -26,7 +26,7 @@ from exiftool import ExifToolHelper
 import pandas as pd
 
 version_number = '1.0.0'
-version_date = '01/03/2026'
+version_date = '14/05/2026'
 ISO = 100
 
 sg.theme('SystemDefault')
