@@ -25,7 +25,7 @@ from pathlib import Path
 from exiftool import ExifToolAlpha, ExifToolHelper
 import pandas as pd
 
-from main import script_path, version_number, version_date, licence_popup, settings_window, make_filmdata_window
+from main import script_path, version_number, version_date, licence_popup, settings_window, sd_data_read, make_filmdata_window
 
 my_nikon_lenses_path = Path('lens_tagging/my_nikon_lenses.csv')
 
@@ -39,12 +39,15 @@ my_nikon_lenses = pd.read_csv(my_nikon_lenses_path)
 
 def get_lens_tags_from_LensIDName(lidname):
     my_lens = my_nikon_lenses.query('LensID == @lidname')
-    my_lens_tags = my_lens.values.tolist()
-    my_lens_cols = my_lens.columns.tolist()
-    return my_lens_cols, my_lens_tags[0]
+    if len(my_lens) > 0:
+        my_lens_tags = my_lens.values.tolist()
+        my_lens_cols = my_lens.columns.tolist()
+        return my_lens_cols, my_lens_tags[0]
+    else:
+        return False, False
 
 def save_tags_dict_with_lenses(sd_data_file):
-    sd_data_db = pd.read_csv(sd_data_file, header=0)
+    sd_data_db = sd_data_read(sd_data_file)
     progress_layout = [
         [sg.Text('Processing scanned images')],
         [sg.ProgressBar(1, orientation='h', key='progress', size=(25, 15))]
@@ -54,7 +57,7 @@ def save_tags_dict_with_lenses(sd_data_file):
     progress_win.force_focus()
     progress_bar = progress_win.find_element('progress')
     my_camera_model = config.get('CameraModel', 'name')
-    my_camera_serial_number = int(config.get('CameraSerialNr', 'number') or 0)
+    my_camera_serial_number = int(config.get('CameraSerialNr', my_camera_model[6:].lower()) or 0)
     for _, row in sd_data_db.iterrows():
         progress_bar.UpdateBar(row['Frame Count'], len(sd_data_db))
         ShutterSpeed = str(row['Shutter Speed'])
@@ -82,11 +85,12 @@ def save_tags_dict_with_lenses(sd_data_file):
                 MeteringMode = 'Spot'
             tags_dict.update({'MeteringMode': MeteringMode})
         if 'Day' in row:
-            mydate = row['Day'].split('/')
-            DateTimeOriginal = mydate[2] + ':' + mydate[0].zfill(2) + ':' + mydate[1].zfill(2) + ' ' + row['Time']
-            tags_dict.update({'DateTimeOriginal': DateTimeOriginal,
-                              'CreateDate': DateTimeOriginal,
-                              'DateCreated': DateTimeOriginal})
+            if not pd.isna(row['Day']):
+                mydate = row['Day'].split('/')
+                DateTimeOriginal = mydate[2] + ':' + mydate[0].zfill(2) + ':' + mydate[1].zfill(2) + ' ' + row['Time']
+                tags_dict.update({'DateTimeOriginal': DateTimeOriginal,
+                                  'CreateDate': DateTimeOriginal,
+                                  'DateCreated': DateTimeOriginal})
         if 'Exposure Mode' in row:
             if row['Exposure Mode'] == 'Aperture-Priority Auto':
                 ExposureProgram = 'Aperture-priority AE'
@@ -107,10 +111,11 @@ def save_tags_dict_with_lenses(sd_data_file):
         if ScanImagePath.is_file():
             if isinstance(row['LensIDName'], str):
                 lens_cols, lens_tags = get_lens_tags_from_LensIDName(row['LensIDName'])
-                with ExifToolAlpha() as eta:
-                    eta.copy_tags(lens_tags[0], str(ScanImagePath))
-                with ExifToolHelper() as eth:
-                    eth.set_tags(ScanImagePath, tags=tags_dict, params=["-P", "-overwrite_original"])
+                if lens_tags:
+                    with ExifToolAlpha() as eta:
+                        eta.copy_tags(lens_tags[0], str(ScanImagePath))
+                    with ExifToolHelper() as eth:
+                        eth.set_tags(ScanImagePath, tags=tags_dict, params=["-P", "-overwrite_original"])
         else:
             sg.popup_error('Scan image could not be found in ' + str(ScanImagePath),
                            'Are the scanned images saved in the right place and with the correct naming ' +

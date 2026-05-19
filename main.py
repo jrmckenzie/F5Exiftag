@@ -25,8 +25,8 @@ from pathlib import Path
 from exiftool import ExifToolHelper
 import pandas as pd
 
-version_number = '1.0.0'
-version_date = '14/05/2026'
+version_number = '1.0.1'
+version_date = '15/05/2026'
 ISO = 100
 
 sg.theme('SystemDefault')
@@ -73,24 +73,47 @@ your Shooting Data is saved in a file named
     title="About F5Exiftag")
     return True
 
+def sd_data_read(my_sd_filename):
+    if my_sd_filename.suffix == '.wld':
+        return pd.read_csv(my_sd_filename, header=0)
+    sd_data_db_firstrow = pd.read_csv(my_sd_filename, header=None, nrows=1)
+    if sd_data_db_firstrow.iloc[0, 0] == 'Film Title':
+        # This file was created by AC-1WE Photo Secretary for F5
+        # comma delimited, first row contains film iso, title and comments, headers in second row
+        ISO = int(str(sd_data_db_firstrow.iloc[0, 3]).strip())
+        sd_data_db = pd.read_csv(my_sd_filename, header=1)
+    else:
+        # Assume this file was created by AC-2WE Photo Secretary II for F100
+        # tab delimited, first row contains film iso, title and comments, no headers
+        sd_data_db_firstrow = pd.read_csv(my_sd_filename, sep='\t', header=None, nrows=1)
+        ISO = int(str(sd_data_db_firstrow.iloc[0, 0]).strip())
+        sd_data_cols = ['Frame Count', 'Shutter Speed', 'Aperture', 'Focal Length', 'Max. Aperture', 'Metering System',
+                        'Exposure Mode', 'Flash Sync Mode', 'Exposure Comp.', 'J', 'K', 'L', 'Data Imprinting', 'Day',
+                        'Time']
+        sd_data_db = pd.read_csv(my_sd_filename, header=None, skiprows=1, sep='\t',
+                                 usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], names=sd_data_cols)
+    return ISO, sd_data_db
+
+
 def settings_window():
     sd_dir = ''
     camera_model = 'Nikon F5'
     camera_serial_nr = ''
-    if config.has_section('NikonSData'):
+    if config.has_option('NikonSData', 'path'):
         sd_dir = config.get('NikonSData', 'path')
-    if config.has_section('CameraModel'):
+    if config.has_option('CameraModel', 'name'):
         camera_model = config.get('CameraModel', 'name')
-    if config.has_option('CameraSerialNr', 'number'):
-        camera_serial_nr = config.get('CameraSerialNr', 'number')
+    if config.has_option('CameraSerialNr', camera_model[6:].lower()):
+        camera_serial_nr = config.get('CameraSerialNr', camera_model[6:].lower())
     loclayout = [[sg.T('')],
                  [sg.Text('Please locate your Nikon Shooting Data folder:'),
                   sg.Input(key='-IN2-', default_text=sd_dir, change_submits=False,
                            readonly=True),
                   sg.FolderBrowse(key='SDloc', initial_folder=sd_dir)],
                  [sg.Text('Camera model:'), sg.Combo(['Nikon F5', 'Nikon F90x', 'Nikon F100', 'Nikon F6'],
-                                                     default_value=camera_model, readonly=True, key='-IN3-'),
-                  sg.Text('Camera serial number'), sg.Input(key='-IN4-', size=8, default_text=camera_serial_nr)],
+                                                     default_value=camera_model, readonly=True, key='-MODEL-',
+                                                     enable_events=True),
+                  sg.Text('Camera serial number'), sg.Input(key='-SERIAL-', size=8, default_text=camera_serial_nr)],
                  [sg.Button('Save'), sg.Button('Cancel')]]
     locwindow = sg.Window('Settings', loclayout)
     while True:
@@ -112,10 +135,10 @@ def settings_window():
             config.set('NikonSData', 'path', shooting_data_path)
             if not config.has_section('CameraModel'):
                 config.add_section('CameraModel')
-            config.set('CameraModel', 'name', values['-IN3-'])
+            config.set('CameraModel', 'name', values['-MODEL-'])
             if not config.has_section('CameraSerialNr'):
                 config.add_section('CameraSerialNr')
-            config.set('CameraSerialNr', 'number', values['-IN4-'])
+            config.set('CameraSerialNr', values['-MODEL-'][6:], values['-SERIAL-'])
             if not config.has_section('ScannedImagesPath'):
                 config.add_section('ScannedImagesPath')
             config.set('ScannedImagesPath', 'path', shooting_data_path)
@@ -128,6 +151,13 @@ def settings_window():
                 sg.popup('Please browse for the path to your Nikon Shooting Data folder and try again.')
                 continue
             break
+        elif event == '-MODEL-':
+            if config.has_option('CameraSerialNr', values['-MODEL-'][6:].lower()):
+                camera_serial_nr = config.get('CameraSerialNr', values['-MODEL-'][6:].lower())
+            else:
+                camera_serial_nr = ''
+            locwindow['-SERIAL-'].update(camera_serial_nr)
+            continue
     locwindow.close()
     return True
 
@@ -136,12 +166,12 @@ def make_filmdata_window(program_title, program_desc, my_file_type, scans_y):
     fd_layout = [[sg.Text('F5Exiftag - Tag Nikon F5 film scans with EXIF data', font=('Arial', 12, 'bold'))],
                  [sg.Text(program_desc, size=(45, 5))],
                  [sg.Text('Please locate your Nikon Shooting Data file:')],
-                 [sg.Input(key='-IN3-', change_submits=False, readonly=True),
+                 [sg.Input(key='-MODEL-', change_submits=False, readonly=True),
                   sg.FileBrowse(key='FDloc', initial_folder=config.get('NikonSData', 'path'),
                                 file_types=((my_file_type), ('All Files', '*.*')))]]
     if scans_y:
         fd_layout = [fd_layout, [sg.Text('Please locate your Scanned Images folder:')],
-                 [sg.Input(key='-IN4-', change_submits=False, readonly=True),
+                 [sg.Input(key='-SERIAL-', change_submits=False, readonly=True),
                   sg.FolderBrowse(key='SIloc', initial_folder=config.get('ScannedImagesPath', 'path')), ]]
     fd_layout = [fd_layout, [sg.Button('Go!'), sg.Button('About'), sg.Button('Settings'), sg.Button('Licence'), sg.Button('Exit')],
                  [sg.Text('v' + version_number + ' Copyright © ' + version_date[-4:] + ' JR McKenzie',
@@ -149,7 +179,8 @@ def make_filmdata_window(program_title, program_desc, my_file_type, scans_y):
                  ]
     return sg.Window(program_title, fd_layout)
 
-def save_tags_dict(sd_data_file, ISO, PS_version):
+def save_tags_dict(sd_data_file):
+    global ISO
     # Iterate through the frames on the film - but first, pop up a progress bar window
     progress_layout = [
         [sg.Text('Processing scanned images')],
@@ -160,15 +191,8 @@ def save_tags_dict(sd_data_file, ISO, PS_version):
     progress_win.force_focus()
     progress_bar = progress_win.find_element('progress')
     my_camera_model = config.get('CameraModel', 'name')
-    my_camera_serial_number = int(config.get('CameraSerialNr', 'number') or 0)
-    if PS_version == 'AC-1WE':
-        sd_data_db = pd.read_csv(sd_data_file, header=1)
-    elif PS_version == 'AC-2WE':
-        sd_data_cols = ['Frame Count', 'Shutter Speed', 'Aperture', 'Focal Length', 'Max. Aperture', 'Metering System',
-                        'Exposure Mode', 'Flash Sync Mode', 'Exposure Comp.', 'J', 'K', 'L', 'Data Imprinting', 'Day',
-                        'Time']
-        sd_data_db = pd.read_csv(sd_data_file, header=None, skiprows=1, sep='\t',
-                                 usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], names=sd_data_cols)
+    my_camera_serial_number = int(config.get('CameraSerialNr', my_camera_model[6:].lower()) or 0)
+    ISO, sd_data_db = sd_data_read(sd_data_file)
     for _, row in sd_data_db.iterrows():
         progress_bar.UpdateBar(row['Frame Count'], len(sd_data_db))
         ShutterSpeed = str(row['Shutter Speed'])
@@ -197,11 +221,12 @@ def save_tags_dict(sd_data_file, ISO, PS_version):
                 MeteringMode = 'Spot'
             tags_dict.update({'MeteringMode': MeteringMode})
         if 'Day' in row:
-            mydate = row['Day'].split('/')
-            DateTimeOriginal = mydate[2] + ':' + mydate[0].zfill(2) + ':' + mydate[1].zfill(2) + ' ' + row['Time']
-            tags_dict.update({'DateTimeOriginal': DateTimeOriginal,
-                              'CreateDate': DateTimeOriginal,
-                              'DateCreated': DateTimeOriginal})
+            if not pd.isna(row['Day']):
+                mydate = row['Day'].split('/')
+                DateTimeOriginal = mydate[2] + ':' + mydate[0].zfill(2) + ':' + mydate[1].zfill(2) + ' ' + row['Time']
+                tags_dict.update({'DateTimeOriginal': DateTimeOriginal,
+                                  'CreateDate': DateTimeOriginal,
+                                  'DateCreated': DateTimeOriginal})
         if 'Exposure Mode' in row:
             if row['Exposure Mode'] == 'Aperture-Priority Auto':
                 ExposureProgram = 'Aperture-priority AE'
@@ -274,18 +299,7 @@ if __name__ == "__main__":
                 config.write(iconfigfile)
                 iconfigfile.close()
             sd_data_file = Path(values['FDloc'])
-            sd_data_db_firstrow = pd.read_csv(sd_data_file, header=None, nrows=1)
-            if sd_data_db_firstrow.iloc[0,0] == 'Film Title':
-                # This file was created by AC-1WE Photo Secretary for F5
-                # comma delimited, first row contains film iso, title and comments, headers in second row
-                ISO = str(sd_data_db_firstrow.iloc[0,3]).strip()
-                tags_dict = save_tags_dict(sd_data_file, ISO, 'AC-1WE')
-            else:
-                # Assume this file was created by AC-2WE Photo Secretary II for F100
-                # tab delimited, first row contains film iso, title and comments, no headers
-                sd_data_db_firstrow = pd.read_csv(sd_data_file, sep='\t', header=None, nrows=1)
-                ISO = str(sd_data_db_firstrow.iloc[0,0]).strip()
-                tags_dict = save_tags_dict(sd_data_file, ISO, 'AC-2WE')
+            tags_dict = save_tags_dict(sd_data_file)
             sg.popup_ok('Process complete for Shooting Data ' +
                         Path(config.get('NikonFData', 'path')).stem + '.', title='Process complete')
             continue

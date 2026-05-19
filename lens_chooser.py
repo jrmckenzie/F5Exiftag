@@ -24,22 +24,29 @@ from pathlib import Path
 import FreeSimpleGUI as sg
 import pandas as pd
 
-from main import script_path, version_number, version_date, licence_popup, settings_window, make_filmdata_window
+from main import script_path, version_number, version_date, licence_popup, settings_window, sd_data_read, make_filmdata_window
 
 sg.theme('SystemDefault')
 config = configparser.ConfigParser()
 path_to_config = script_path / 'config.ini'
 config.read(path_to_config)
 my_nikon_lenses_path = script_path / "lens_tagging" / "my_nikon_lenses.csv"
-ISO = 100
 film_lens_chooser_active = False
 
 def make_lens_chooser_window(my_sd_filename):
-    sd_data_db = pd.read_csv(my_sd_filename, header=1)
+    ISO, sd_data_db = sd_data_read(my_sd_filename)
     lens_layout = []
     for _, row in sd_data_db.iterrows():
+        if pd.isna(row['Focal Length']):
+            focal_length = '--mm'
+        else:
+            focal_length = str(row['Focal Length']) + 'mm'
+        if pd.isna(row['Max. Aperture']):
+            max_aperture = 'F--'
+        else:
+            max_aperture = row['Max. Aperture']
         lens_layout = lens_layout + [
-            [sg.T(row['Frame Count']), sg.T(str(row['Focal Length']) + "mm"), sg.T(str(row['Max. Aperture'])),
+            [sg.T(row['Frame Count']), sg.T(focal_length), sg.T(max_aperture),
              sg.Combo(my_lens_id_list, key=row['Frame Count'], readonly=False)]]
     lens_layout = lens_layout + [[sg.Button('Save'), sg.Button('Cancel')]]
     this_layout = [[sg.Column(lens_layout, scrollable=True, vertical_scroll_only=True)]]
@@ -105,16 +112,14 @@ if __name__ == "__main__":
                 config.add_section('NikonFData')
             if not config.has_section('NikonFDataLenses'):
                 config.add_section('NikonFDataLenses')
-            sd_filename = values['FDloc']
-            sd_with_lenses_path = Path(sd_filename).with_suffix('.wld')
+            my_sd_filename = values['FDloc']
+            sd_with_lenses_path = Path(my_sd_filename).with_suffix('.wld')
             config.set('NikonFData', 'path', values['FDloc'])
             config.set('NikonFDataLenses', 'path', str(sd_with_lenses_path))
             with open(path_to_config, 'w') as iconfigfile:
                 config.write(iconfigfile)
                 iconfigfile.close()
             film_lens_chooser = make_lens_chooser_window(values['FDloc'])
-            sd_data_db_firstrow = pd.read_csv(sd_filename, header=None, nrows=1)
-            ISO = sd_data_db_firstrow.iloc[0,3]
             while True:
                 fevent, fvalues = film_lens_chooser.Read()
                 if fevent == 'Cancel' or fevent == sg.WIN_CLOSED:
@@ -123,7 +128,7 @@ if __name__ == "__main__":
                     filmdata_window.un_hide()
                     break
                 elif fevent == 'Save':
-                    sd_data_db = pd.read_csv(sd_filename, header=1)
+                    ISO, sd_data_db = sd_data_read(my_sd_filename)
                     sd_data_db.insert(5, 'ISO', ISO)
                     sd_data_db.insert(5, 'LensIDName', fvalues.values())
                     sd_data_db.to_csv(sd_with_lenses_path, index=False)
