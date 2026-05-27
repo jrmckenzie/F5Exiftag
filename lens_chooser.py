@@ -112,14 +112,14 @@ if __name__ == "__main__":
                 config.add_section('NikonFData')
             if not config.has_section('NikonFDataLenses'):
                 config.add_section('NikonFDataLenses')
-            my_sd_filename = values['FDloc']
-            sd_with_lenses_path = Path(my_sd_filename).with_suffix('.wld')
+            my_sd_filename = Path(values['FDloc'])
+            sd_with_lenses_path = my_sd_filename.with_suffix('.wld')
             config.set('NikonFData', 'path', values['FDloc'])
             config.set('NikonFDataLenses', 'path', str(sd_with_lenses_path))
             with open(path_to_config, 'w') as iconfigfile:
                 config.write(iconfigfile)
                 iconfigfile.close()
-            film_lens_chooser = make_lens_chooser_window(values['FDloc'])
+            film_lens_chooser = make_lens_chooser_window(my_sd_filename)
             while True:
                 fevent, fvalues = film_lens_chooser.Read()
                 if fevent == 'Cancel' or fevent == sg.WIN_CLOSED:

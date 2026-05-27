@@ -120,7 +120,7 @@ def save_tags_dict_with_lenses(sd_data_file):
             sg.popup_error('Scan image could not be found in ' + str(ScanImagePath),
                            'Are the scanned images saved in the right place and with the correct naming ' +
                            'convention? This application will keep going and try the next one in the ' +
-                           'sequence until the end of the roll.', title='Error: scanned image not found.')
+                           'sequence until the end of the roll.', title='Warning: scanned image not found.')
     progress_win.close()
     return True
 
