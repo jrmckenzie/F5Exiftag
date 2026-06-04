@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 #
 #     F5Exiftag,  A script to read film roll data from files exported
-#     by Nikon Photo Secretary for F5 and inject the information into
-#     EXIF tags in the jpeg or tiff scans of the film.
+#     by Nikon Photo Secretary and inject the information into EXIF
+#     tags in the jpeg or tiff scans of the film.
 #     Copyright © 2026 James McKenzie jrmknz@yahoo.co.uk
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,10 @@ version_number = '1.0.1'
 version_date = '15/05/2026'
 ISO = 100
 
-sg.theme('SystemDefault')
+sg.theme('DarkBrown2')
+sg.theme_background_color('#333333')
+sg.theme_text_element_background_color('#333333')
+sg.theme_button_color('#FFE100')
 
 config = configparser.ConfigParser()
 script_path = Path(__file__).absolute().parent
@@ -53,14 +56,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.""",
     return True
 
 def about_popup():
-    sg.popup("""This is a tool for Nikon F5 camera users who connect their
-camera to a PC or Mac with a serial cable and use Nikon
-Photo Secretary for F5 to save the Shooting Data from a
-roll of film.
+    sg.popup("""This is a tool for Nikon F5/F90/F90x/F100 camera users
+who connect their camera to a PC or Mac with a serial
+cable and use Nikon Photo Secretary to download the
+Shooting Data for a roll of film from the camera's
+menu to their computer. It enable the user to store
+the shooting data as metadata in scanned images of
+each frame on the roll of film.
 
-You need to use the "Convert Data" function in Photo
-Secretary for F5 to save the shooting data in a text
-format readable by this software.
+You need to use the "Convert Data" or "Save As" function
+in Photo Secretary to save the shooting data in a text
+format readable by this utility.
 
 You also need your film scans all saved as JPG and
 named according to a strict naming convention. e.g. if
@@ -105,14 +111,14 @@ def settings_window():
         camera_model = config.get('CameraModel', 'name')
     if config.has_option('CameraSerialNr', camera_model[6:].lower()):
         camera_serial_nr = config.get('CameraSerialNr', camera_model[6:].lower())
-    loclayout = [[sg.T('')],
+    loclayout = [[sg.Text('F5Exiftag', text_color='#FFE100', font=('Arial', 14, 'bold', 'italic'))],
                  [sg.Text('Please locate your Nikon Shooting Data folder:'),
                   sg.Input(key='-IN2-', default_text=sd_dir, change_submits=False,
                            readonly=True),
                   sg.FolderBrowse(key='SDloc', initial_folder=sd_dir)],
-                 [sg.Text('Camera model:'), sg.Combo(['Nikon F5', 'Nikon F90x', 'Nikon F100', 'Nikon F6'],
-                                                     default_value=camera_model, readonly=True, key='-MODEL-',
-                                                     enable_events=True),
+                 [sg.Text('Camera model:'), sg.Combo(['Nikon F5', 'Nikon F90', 'Nikon F90x', 'Nikon F100',
+                                                     'Nikon F6'], default_value=camera_model, readonly=True,
+                                                     key='-MODEL-', enable_events=True),
                   sg.Text('Camera serial number'), sg.Input(key='-SERIAL-', size=8, default_text=camera_serial_nr)],
                  [sg.Button('Save'), sg.Button('Cancel')]]
     locwindow = sg.Window('Settings', loclayout)
@@ -163,8 +169,9 @@ def settings_window():
 
 
 def make_filmdata_window(program_title, program_desc, my_file_type, scans_y):
-    fd_layout = [[sg.Text('F5Exiftag - Tag Nikon F5 film scans with EXIF data', font=('Arial', 12, 'bold'))],
-                 [sg.Text(program_desc, size=(45, 5))],
+    fd_layout = [[sg.Text('F5Exiftag', text_color='#FFE100', font=('Arial', 14, 'bold', 'italic'))],
+                 [sg.Text('Tag Nikon F5/F90/F90x/F100 film scans with'
+                          '\nNikon Photo Secretary shooting data', font=('Arial', 12))],
                  [sg.Text('Please locate your Nikon Shooting Data file:')],
                  [sg.Input(key='-MODEL-', change_submits=False, readonly=True),
                   sg.FileBrowse(key='FDloc', initial_folder=config.get('NikonSData', 'path'),

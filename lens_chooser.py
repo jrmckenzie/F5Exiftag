@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 #
 #     F5Exiftag,  A script to read film roll data from files exported
-#     by Nikon Photo Secretary for F5 and inject the information into
-#     EXIF tags in the jpeg or tiff scans of the film.
+#     by Nikon Photo Secretary and inject the information into EXIF
+#     tags in the jpeg or tiff scans of the film.
 #     Copyright © 2026 James McKenzie jrmknz@yahoo.co.uk
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -26,7 +26,11 @@ import pandas as pd
 
 from main import script_path, version_number, version_date, licence_popup, settings_window, sd_data_read, make_filmdata_window
 
-sg.theme('SystemDefault')
+sg.theme('DarkBrown2')
+sg.theme_background_color('#333333')
+sg.theme_text_element_background_color('#333333')
+sg.theme_button_color('#FFE100')
+
 config = configparser.ConfigParser()
 path_to_config = script_path / 'config.ini'
 config.read(path_to_config)

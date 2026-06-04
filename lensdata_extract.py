@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 #
 #     F5Exiftag,  A script to read film roll data from files exported
-#     by Nikon Photo Secretary for F5 and inject the information into
-#     EXIF tags in the jpeg or tiff scans of the film.
+#     by Nikon Photo Secretary and inject the information into EXIF
+#     tags in the jpeg or tiff scans of the film.
 #     Copyright © 2026 James McKenzie jrmknz@yahoo.co.uk
 #
 #     This program is free software: you can redistribute it and/or modify
