@@ -26,7 +26,7 @@ from exiftool import ExifToolHelper
 import pandas as pd
 from datetime import datetime, timedelta
 
-version_number = '1.0.2-beta-1'
+version_number = '1.0.1-beta-1'
 version_date = '16/06/2026'
 ISO = 100
 
