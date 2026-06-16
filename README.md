@@ -22,7 +22,7 @@ Then run main.py. On first run it will ask where your Nikon Shooting Data folder
 
 There are some other scripts and directories besides main.py but these are experimental bits and pieces probably best left alone. See below.
 
-If you want it to tag the files with your camera's serial number you can press the Settings button and enter the 7 digit serial number. In Settings you can also choose which model of camera your images were shot with.
+If you want it to tag the files with your camera's serial number you can press the Settings button and enter the 7 digit serial number. In Settings you can also choose which model of camera your images were shot with. There is also a timeshift option which you can use to add or subtract seconds to or from the shooting data times if the clock is known to be out by a certain period. Input a positive number of seconds to add time, negative to subtract. Can be 10 digits which allows over 300 years. 
 
 Experimental, maybe don't bother trying
 =======================================

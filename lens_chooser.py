@@ -19,20 +19,17 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
-import configparser
 from pathlib import Path
 import FreeSimpleGUI as sg
 import pandas as pd
-
-from main import script_path, version_number, version_date, licence_popup, settings_window, sd_data_read, make_filmdata_window
+from main import (script_path, licence_popup, settings_window, sd_data_read,
+                  about_popup, make_filmdata_window, config, path_to_config)
 
 sg.theme('DarkBrown2')
 sg.theme_background_color('#333333')
 sg.theme_text_element_background_color('#333333')
 sg.theme_button_color('#FFE100')
 
-config = configparser.ConfigParser()
-path_to_config = script_path / 'config.ini'
 config.read(path_to_config)
 my_nikon_lenses_path = script_path / "lens_tagging" / "my_nikon_lenses.csv"
 film_lens_chooser_active = False
@@ -56,27 +53,6 @@ def make_lens_chooser_window(my_sd_filename):
     this_layout = [[sg.Column(lens_layout, scrollable=True, vertical_scroll_only=True)]]
     return sg.Window('Lens chooser', this_layout, finalize=True)
 
-def about_popup():
-    sg.popup("""This is a tool for Nikon F5 camera users who connect their
-camera to a PC or Mac with a serial cable and use Nikon
-Photo Secretary for F5 to save the Shooting Data from a
-roll of film.
-
-You need to use the "Convert Data" function in Photo
-Secretary for F5 to save the shooting data in a text
-format readable by this software.
-
-You also need your film scans all saved as JPG and
-named according to a strict naming convention. e.g. if
-your Shooting Data is saved in a file named
-"2550103.txt" then the JPG files must be named
-"2550103-1.JPG", "2550103-2.JPG" etc.""",
-    "Version " + version_number + " / " + version_date + "\n" +
-    "Copyright © " + version_date[-4:] + " JR McKenzie (jrmknz@yahoo.co.uk)\n" +
-    "https://github.com/jrmckenzie/F5Exiftag\n",
-    title="About F5Exiftag")
-    return True
-
 # Read configuration and find location of Nikon Shooting Data folder, or ask user to set it
 if config.has_option('NikonSData', 'path'):
     shooting_data_path = config.get('NikonSData', 'path')
@@ -99,9 +75,9 @@ if __name__ == "__main__":
             about_popup()
             continue
         elif event == 'Settings':
-            filmdata_window.hide()
+            filmdata_window.close()
             settings_window()
-            filmdata_window.un_hide()
+            filmdata_window = make_filmdata_window(my_title, my_desc, my_file_type, False)
             continue
         elif event == 'Licence':
             licence_popup()

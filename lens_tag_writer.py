@@ -19,13 +19,13 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
-import configparser
 import FreeSimpleGUI as sg
 from pathlib import Path
 from exiftool import ExifToolAlpha, ExifToolHelper
 import pandas as pd
-
-from main import script_path, version_number, version_date, licence_popup, settings_window, sd_data_read, make_filmdata_window
+from datetime import datetime, timedelta
+from main import (licence_popup, settings_window, sd_data_read, about_popup, make_filmdata_window, config,
+                  path_to_config)
 
 my_nikon_lenses_path = Path('lens_tagging/my_nikon_lenses.csv')
 
@@ -34,8 +34,6 @@ sg.theme_background_color('#333333')
 sg.theme_text_element_background_color('#333333')
 sg.theme_button_color('#FFE100')
 
-config = configparser.ConfigParser()
-path_to_config = script_path / 'config.ini'
 config.read(path_to_config)
 
 my_nikon_lenses = pd.read_csv(my_nikon_lenses_path)
@@ -59,8 +57,16 @@ def save_tags_dict_with_lenses(sd_data_file):
     progress_win.bring_to_front()
     progress_win.force_focus()
     progress_bar = progress_win.find_element('progress')
-    my_camera_model = config.get('CameraModel', 'name')
-    my_camera_serial_number = int(config.get('CameraSerialNr', my_camera_model[6:].lower()) or 0)
+    my_camera_model = 'Nikon F5'
+    my_camera_serial_number = ''
+    my_timedelta = 0
+    config.read(path_to_config)
+    if config.has_option('CameraModel', 'name'):
+        my_camera_model = config.get('CameraModel', 'name')
+    if config.has_option('CameraSerialNr', my_camera_model[6:].lower()):
+        my_camera_serial_number = config.get('CameraSerialNr', my_camera_model[6:].lower() or '')
+    if config.has_option('TimeDelta', 'seconds'):
+        my_timedelta = int(config.get('TimeDelta', 'seconds') or '0')
     for _, row in sd_data_db.iterrows():
         progress_bar.UpdateBar(row['Frame Count'], len(sd_data_db))
         ShutterSpeed = str(row['Shutter Speed'])
@@ -71,14 +77,16 @@ def save_tags_dict_with_lenses(sd_data_file):
         else:
             ShutterSpeed = row['Shutter Speed']
         Focal_Length = str(row['Focal Length'])
-        tags_dict = {'Model': my_camera_model,
-                     'ISO': row['ISO'],
+        tags_dict = {'ISO': row['ISO'],
                      'FocalLength': Focal_Length,
                      'FocalLengthIn35mmFormat': Focal_Length,
                      'FNumber': row['Aperture'][1:],
                      'ExposureTime': ShutterSpeed,
-                     'SerialNumber': my_camera_serial_number
                      }
+        if len(my_camera_serial_number) > 0:
+            tags_dict.update({'SerialNumber': int(my_camera_serial_number)})
+        if len(my_camera_model) > 0:
+            tags_dict.update({'Model': my_camera_model})
         if 'Metering System' in row:
             if row['Metering System'][-6:] == 'Matrix':
                 MeteringMode = 'Multi-segment'
@@ -89,8 +97,11 @@ def save_tags_dict_with_lenses(sd_data_file):
             tags_dict.update({'MeteringMode': MeteringMode})
         if 'Day' in row:
             if not pd.isna(row['Day']):
-                mydate = row['Day'].split('/')
-                DateTimeOriginal = mydate[2] + ':' + mydate[0].zfill(2) + ':' + mydate[1].zfill(2) + ' ' + row['Time']
+                sd_date_format = '%m/%d/%Y %H:%M:%S'
+                my_date = datetime.strptime(row['Day'] + ' ' + row['Time'], sd_date_format)
+                my_date = my_date + timedelta(seconds=my_timedelta)
+                exiftool_date_format = '%Y:%m:%d %H:%M:%S'
+                DateTimeOriginal = my_date.strftime(exiftool_date_format)
                 tags_dict.update({'DateTimeOriginal': DateTimeOriginal,
                                   'CreateDate': DateTimeOriginal,
                                   'DateCreated': DateTimeOriginal})
@@ -125,27 +136,6 @@ def save_tags_dict_with_lenses(sd_data_file):
                            'convention? This application will keep going and try the next one in the ' +
                            'sequence until the end of the roll.', title='Warning: scanned image not found.')
     progress_win.close()
-    return True
-
-def about_popup():
-    sg.popup("""This is a tool for Nikon F5 camera users who connect their
-camera to a PC or Mac with a serial cable and use Nikon
-Photo Secretary for F5 to save the Shooting Data from a
-roll of film.
-
-You need to use the "Convert Data" function in Photo
-Secretary for F5 to save the shooting data in a text
-format readable by this software.
-
-You also need your film scans all saved as JPG and
-named according to a strict naming convention. e.g. if
-your Shooting Data is saved in a file named
-"2550103.txt" then the JPG files must be named
-"2550103-1.JPG", "2550103-2.JPG" etc.""",
-    "Version " + version_number + " / " + version_date + "\n" +
-    "Copyright © " + version_date[-4:] + " JR McKenzie (jrmknz@yahoo.co.uk)\n" +
-    "https://github.com/jrmckenzie/F5Exiftag\n",
-    title="About F5Exiftag")
     return True
 
 # Read configuration and find location of Nikon Shooting Data folder, or ask user to set it
